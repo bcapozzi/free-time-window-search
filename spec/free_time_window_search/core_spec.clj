@@ -1,6 +1,7 @@
 (ns free-time-window-search.core-spec
   (:require [speclj.core :refer :all]
             [free-time-window-search.core :refer :all]))
+
 (describe "free-time-windows"
   (it "Can identify values within a window"
            (should= true (is-within? [1 100] 10)))

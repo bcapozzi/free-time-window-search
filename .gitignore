@@ -9,3 +9,8 @@ pom.xml
 .lein-failures
 .lein-plugins
 .lein-repl-history
+.classpath
+.project
+/.settings
+/bin
+.nrepl-port
