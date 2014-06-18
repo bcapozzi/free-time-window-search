@@ -6,4 +6,5 @@
   :dependencies [[org.clojure/clojure "1.5.1"]]
   :profiles {:dev {:dependencies [[speclj "2.6.1"]]}}
   :plugins [[speclj "2.6.1"]]
-  :test-paths ["spec"])
+  :test-paths ["spec"]
+  :jvm-opts ["-Dline.separator=\"\n\""])

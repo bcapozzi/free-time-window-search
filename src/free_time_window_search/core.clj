@@ -41,41 +41,20 @@
   (< start end) [start end]
   :else [])))
 
-(defn can-transition-between-at-time [w-from w-to t d-from d-to]
-  (let [overlap (intersection-of w-from w-to)
-        start1 (first w-from)
-        end1 (last w-from)
-        start2 (first w-to)
-        end2 (last w-to)
+(defn can-transition-between-at-time? [from to t]
+  (let [overlap (intersection-of (:window from) (:window to))
+        start1 (first (:window from))
+        end1 (last (:window from))
+        start2 (first (:window to))
+        end2 (last (:window to))
         constraint1 (is-within? overlap t)
-        constraint2 (> (- t start1) d-from)
-        constraint3 (> (- end2 t) d-to)]
+        constraint2 (>= (- t start1) (:duration from))
+        constraint3 (>= (- end2 t) (:duration to))]
     
     ;(println constraint1, constraint2, constraint3)
     
     (and constraint1 constraint2 constraint3)))
             
-
-    
-
-(defn can-transition-between-at-time [w-from w-to t d-from d-to]
-  (let [overlap (intersection-of w-from w-to)
-        start1 (first w-from)
-        end1 (last w-from)
-        start2 (first w-to)
-        end2 (last w-to)
-        constraint1 (is-within? overlap t)
-        constraint2 (> (- t start1) d-from)
-        constraint3 (> (- end2 t) d-to)]
-    
-    ;(println constraint1, constraint2, constraint3)
-    
-    (and constraint1 constraint2 constraint3)))
-            
-
-
-    
-
 
 (defn to-changes [load-func]
   (loop [lfunc load-func
