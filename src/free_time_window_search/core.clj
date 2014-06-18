@@ -41,6 +41,7 @@
   (< start end) [start end]
   :else [])))
 
+
 (defn can-transition-between-at-time? [from to t]
   (let [overlap (intersection-of (:window from) (:window to))
         start1 (first (:window from))
@@ -51,10 +52,19 @@
         constraint2 (>= (- t start1) (:duration from))
         constraint3 (>= (- end2 t) (:duration to))]
     
-    ;(println constraint1, constraint2, constraint3)
+    ;; (println "time: ", t, " overlap: " constraint1, constraint2, constraint3)
     
     (and constraint1 constraint2 constraint3)))
             
+
+(defn can-transition-between-given-entry-time? [from to entry-time]
+  (loop [t (+ (:entry from) (:duration from))]
+    (cond
+     (> t (second (:window to))) false
+     (can-transition-between-at-time? from to t) true
+     :else (recur (inc t)))
+    )
+  )
 
 (defn to-changes [load-func]
   (loop [lfunc load-func
@@ -100,4 +110,46 @@
     )
   )
 
+(defn compute-exit [usage]
+  (merge  {:exit  (+ (:entry usage) (:duration usage))} usage )
+)
 
+
+(defn remove-lowest-cost [open-list]
+  (let [best (first (sort-by :exit (map compute-exit open-list)))]
+    [best (rest open-list)]
+    )
+  )
+
+(defn is-neighbor? [usage resource]
+  (contains? (set (:neighbors usage)) (:resource resource)))
+
+(defn get-neighbors-of [usage resources]
+  (filter #(is-neighbor? usage %) resources)
+  )
+
+(defn find-reachable-between [from-resource-usage next-resource]
+  (let [free-windows (compute-free-time-windows (:loading next-resource) (:capacity next-resource))]
+    (loop [free-windows free-windows reachable []]
+       ;; (println free-windows, reachable)
+      (cond
+       (empty? free-windows) reachable
+       (can-transition-between-given-entry-time?
+        from-resource-usage
+        (merge  {:window (first free-windows)} next-resource)
+        (:entry from-resource-usage))
+       (recur (drop 1 free-windows) (conj reachable {:resource (:resource next-resource):window (first free-windows)})))
+      )
+    )
+  )
+
+
+(defn find-reachable-windows [from-resource-usage resources]
+  (let [neighbors (get-neighbors-of from-resource-usage resources)]
+    (loop [neighbors neighbors reachable []]
+      (cond
+       (empty? neighbors) reachable 
+       :else (recur (drop 1 neighbors) (conj reachable (find-reachable-between from-resource-usage (first neighbors)))))
+      )
+    )
+  )

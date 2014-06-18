@@ -3,6 +3,7 @@
   (:require [speclj.core :refer :all]
             [free-time-window-search.core :refer :all]))
 
+
 (describe "free-time-windows"
   (it "Can identify values within a window"
            (should= true (is-within? [1 100] 10)))
@@ -24,7 +25,8 @@ left edge of window as being contained within window"
     (should= [] (intersection-of [0 100] [101 10000])))
 
   (it "Can identify when a time window is reachable from another"
-    (should= true (can-transition-between-at-time? {:window [0 100] :duration 2} {:window [90 110] :duration 5} 95)))
+      (should= true (can-transition-between-at-time? {:window [0 100] :duration 2}
+                                                     {:window [90 110] :duration 5} 95)))
 
    
   (it "Can identify when a time window is not reachable from another due to duration in FROM resource"
@@ -50,5 +52,24 @@ left edge of window as being contained within window"
 
   (it "Finds free time windows given loading function with two closed intervals"
       (should= [[0 10],[20 30],[40 infinity]] (compute-free-time-windows [[10 20] [30 40]] 1)))
+
+  (it "Can select element from open list with earliest exit time, given durations on each resource"
+      (should= "A"
+               (:resource (first  (remove-lowest-cost [{:resource "B" :entry 5 :duration 15}
+                                                       {:resource "C" :entry 12 :duration 20}
+                                                       {:resource "A" :entry 0 :duration 10}])))))
+
+  (it "Removes lowest cost element from open list, reducing size by one"
+      (should= 2
+               (count (second (remove-lowest-cost [{:resource "B" :entry 5 :duration 15}
+                                                       {:resource "C" :entry 12 :duration 20}
+                                                       {:resource "A" :entry 0 :duration 10}])))))
+
+  (it "Can identify reachable neighbors"
+      (should-contain [0 2]
+                      (map :window (first (find-reachable-windows {:resource "A" :window [0 99999] :entry 0 :duration 1 :neighbors ["B"]}
+                                                                  [ {:resource "B" :loading [[2 4]] :capacity 1 :duration 1}])))
+                      ))
   )
+
 
