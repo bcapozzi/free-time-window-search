@@ -65,11 +65,17 @@ left edge of window as being contained within window"
                                                        {:resource "C" :entry 12 :duration 20}
                                                        {:resource "A" :entry 0 :duration 10}])))))
 
-  (it "Can identify reachable neighbors"
-      (should-contain [0 2]
-                      (map :window (first (find-reachable-windows {:resource "A" :window [0 99999] :entry 0 :duration 1 :neighbors ["B"]}
-                                                                  [ {:resource "B" :loading [[2 4]] :capacity 1 :duration 1}])))
-                      ))
+  (let
+      [from-resource {:resource "A" :window [0 99999] :entry 0 :duration 1 :neighbors ["B"]}
+       all-resources [{:resource "A" :loading [] :capacity 99999 :duration 0}
+                      {:resource "B" :loading [[2 4]] :capacity 1 :duration 1}]]
+    (it "Can identify reachable neighbors"
+        (should-contain [0 2]
+                        (map :window (first (find-reachable-windows from-resource all-resources))))
+        (should-contain [4 infinity]
+                        (map :window (first (find-reachable-windows from-resource all-resources))))
+    ))
+  
   )
 
 
