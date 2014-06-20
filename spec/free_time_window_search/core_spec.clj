@@ -3,13 +3,11 @@
   (:require [speclj.core :refer :all]
             [free-time-window-search.core :refer :all]))
 
-
 (describe "free-time-windows"
   (it "Can identify values within a window"
            (should= true (is-within? [1 100] 10)))
 
-  (it "Can identify values at
-left edge of window as being contained within window"
+  (it "Can identify values at left edge of window as being contained within window"
       (should= true (is-within? [1 100] 1)))
   
   (it "Can identify values at right edge of window as being outside of window"
@@ -29,15 +27,18 @@ left edge of window as being contained within window"
                                                      {:window [90 110] :duration 5} 95)))
 
    
-  (it "Can identify when a time window is not reachable from another due to duration in FROM resource"
+  (it "Can identify when a time window is not reachable from another
+       due to duration in FROM resource"
       (should= false (can-transition-between-at-time? {:window [90 100] :duration 8}
                                                        {:window [90 120] :duration 10} 95)))
 
-  (it "Can identify when a time window is not reachable from another due to duration in TO resource"
+  (it "Can identify when a time window is not reachable from another
+       due to duration in TO resource"
       (should= false (can-transition-between-at-time? {:window [0 100] :duration 2}
                                                       {:window [90 105] :duration 11} 95)))
 
-  (it "Can identify when a time window is not reachable from another due to lack of overlap"
+  (it "Can identify when a time window is not reachable from another
+       due to lack of overlap"
       (should= false (can-transition-between-at-time? {:window [90 120] :duration 10}
                                                       {:window [100 150] :duration 10} 130)))
 
@@ -61,9 +62,11 @@ left edge of window as being contained within window"
 
   (it "Removes lowest cost element from open list, reducing size by one"
       (should= 2
-               (count (second (remove-lowest-cost [{:resource "B" :entry 5 :duration 15}
-                                                       {:resource "C" :entry 12 :duration 20}
-                                                       {:resource "A" :entry 0 :duration 10}])))))
+               (count (second
+                       (remove-lowest-cost
+                        [{:resource "B" :entry 5 :duration 15}
+                         {:resource "C" :entry 12 :duration 20}
+                         {:resource "A" :entry 0 :duration 10}])))))
 
   (let
       [from-resource {:resource "A" :window [0 99999] :entry 0 :duration 1 :neighbors ["B"]}
@@ -71,10 +74,21 @@ left edge of window as being contained within window"
                       {:resource "B" :loading [[2 4]] :capacity 1 :duration 1}]]
     (it "Can identify reachable neighbors"
         (should-contain [0 2]
-                        (map :window (first (find-reachable-windows from-resource all-resources))))
+                        (map :window
+                             (first (find-reachable-windows from-resource all-resources))))
         (should-contain [4 infinity]
-                        (map :window (first (find-reachable-windows from-resource all-resources))))
-    ))
+                        (map :window
+                             (first (find-reachable-windows from-resource all-resources))))
+        ))
+
+  (let
+      [all-resources [{:resource "A" :loading [] :capacity 1 :duration 10 :neighbors ["B"]}
+                      {:resource "B" :loading [] :capacity 1 :duration 10 :neighbors ["C"]}
+                      {:resource "C" :loading [] :capacity 1 :duration 10 :neighbors []}]]
+    (it "Can find spatio-temporal path thru empty resources"
+        (should= ["A" "B" "C"] (get-resource-ids  (find-path "A" "C" 0 all-resources)))
+        (should= [0 10 20] (get-resource-entry-times (find-path "A" "C" 0 all-resources)))
+        ))
   
   )
 

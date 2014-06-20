@@ -31,6 +31,7 @@
 (defn intersection-of
   "Compute the intersection of two ranges, each defined by two integer values [a1,b1] and [a2,b2]"
   [range1 range2]
+  ;; (println "checking for intersection between: ", range1, " and ", range2)
   (let [a1 (first range1)
     b1 (last range1)
     a2 (first range2)
@@ -43,6 +44,7 @@
 
 
 (defn can-transition-between-at-time? [from to t]
+  ;; (println "checking for transition between " from " and " to " at time: " t)
   (let [overlap (intersection-of (:window from) (:window to))
         start1 (first (:window from))
         end1 (last (:window from))
@@ -111,9 +113,14 @@
   )
 
 (defn compute-exit [usage]
+  ;; (println "computing exit for usage: ", usage)
   (merge  {:exit  (+ (:entry usage) (:duration usage))} usage )
 )
 
+(defn select-lowest-cost [open-list]
+  ;; (println "searching for lowest cost on open-list: ", open-list)
+  (first (sort-by :exit (map compute-exit open-list)))  
+  )
 
 (defn remove-lowest-cost [open-list]
   (let [best (first (sort-by :exit (map compute-exit open-list)))]
@@ -129,7 +136,9 @@
   )
 
 (defn find-reachable-between [from-resource-usage next-resource]
-  (let [free-windows (compute-free-time-windows (:loading next-resource) (:capacity next-resource))]
+  
+  (let [free-windows (compute-free-time-windows (:loading next-resource)
+                                                (:capacity next-resource))]
     (loop [free-windows free-windows reachable []]
        ;; (println free-windows, reachable)
       (cond
@@ -145,11 +154,91 @@
 
 
 (defn find-reachable-windows [from-resource-usage resources]
+  
   (let [neighbors (get-neighbors-of from-resource-usage resources)]
     (loop [neighbors neighbors reachable []]
       (cond
        (empty? neighbors) reachable 
-       :else (recur (drop 1 neighbors) (conj reachable (find-reachable-between from-resource-usage (first neighbors)))))
+       :else (recur (drop 1 neighbors)
+                    (conj reachable
+                          (find-reachable-between from-resource-usage (first neighbors)))))
       )
     )
+  )
+
+(defn add-source [from start resources]
+  ;; (println "adding source node to resources: ", resources)
+  (into [ {:resource "source"  :entry start :duration 0 :neighbors [from]}] resources)
+  )
+
+(defn is-destination? [goal node]
+  (= goal (:resource node))
+  )
+
+(defn matches-id? [resource id]
+  (= id (:resource resource))
+  )
+
+(defn get-resource [resources id]
+  (first (filter #(matches-id? % id) resources))
+  )
+
+(defn trace-path [node resources]
+  ;; (println "found destination!! ", node)
+  (loop [path [] node node]
+    ;; (println "path so far: " path " node: " (:resource  node) )
+    (cond
+     (empty? (:previous node)) path
+     :else (recur (into [{:resource  (:resource node)
+                          :entry (:entry node)}] path) (:previous node))
+     )
+    )
+  )
+
+(defn get-resource-ids [resource-path]
+  (map :resource resource-path)
+  )
+
+(defn get-resource-entry-times [resource-path]
+  (map :entry resource-path)
+  )
+
+(defn expand [open-list node resources]
+  ;; (println "expanding node: " node)
+  (let [open-list (rest open-list)
+        reachable (find-reachable-windows node resources)]
+    (loop [reachable reachable open-list open-list]
+      ;; (println "reachable windows: ", reachable)
+      ;; (println "first reachable: ", (first reachable))
+      (cond
+       (empty? reachable) open-list
+       :else
+       (let [named-window (first (first reachable))
+             texit (+ (:entry node) (:duration node))
+             tentry (max texit (first (:window named-window)))
+             resource-id (:resource named-window)
+             resource (get-resource resources resource-id)]
+         (recur (drop 1 reachable)
+                (conj open-list
+                      (assoc
+                          (assoc
+                              (assoc resource :entry tentry)
+                            :window (:window named-window))
+                        :previous node)))
+         )
+       )
+      )
+    )
+  )
+
+(defn find-path [from to start resources]
+  (let [resources (add-source from start resources)]
+    ;; (println "search for path from ", from, " to ", to, " on resources: ", resources)
+    (loop [open-list [(assoc  (first resources) :window [0 infinity])]]
+      (let [next (select-lowest-cost open-list)]
+        (cond
+         (empty? open-list) []
+         (is-destination? to next) (trace-path next resources)
+         :else (recur (expand open-list next resources))
+         ))))
   )
