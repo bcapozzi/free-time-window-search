@@ -61,11 +61,30 @@
   (/ (+ x1 x2) 2)
   )
 
-(defn render-path [g w h path resources time-bounds]
+(defn render-resource-usage [g usage user]
+
+  (.setColor g (new Color 0 255 0 128))
+  
+  (.fillRect g
+             (:x1 usage)
+             (:y1 usage)
+             (- (:x2 usage) (:x1 usage))
+             (- (:y2 usage) (:y1 usage)))
+
+  (.setColor g (new Color 255 255 255 255))
+  (.drawString g
+                user
+                (int  (average (:x1 usage) (:x2 usage)))
+                (int  (average (:y1 usage) (:y2 usage))))
+
+  )
+
+
+(defn render-path [g w h user path resources time-bounds]
   (let [dresources (to-drawing-resources path resources time-bounds)]
     (.setColor g (new Color 0 255 0 128))
     (doall (for [d dresources]
-             (.fillRect g (:x1 d) (:y1 d) (- (:x2 d) (:x1 d)) (- (:y2 d) (:y1 d)))
+             (render-resource-usage g d user)
              ))
     )
   )
@@ -108,10 +127,32 @@
      )
   )
 
+(defn to-display-x [x-bounds t-bounds t]
+  (let [x-min (first x-bounds)
+        x-max (second x-bounds)
+        t-min (first t-bounds)
+        t-max (second t-bounds)
+        x-range (- x-max x-min)
+        t-range (- t-max t-min)
+        slope (/ x-range t-range)]
+
+    (int (+ x-min (* slope (- t t-min))))
+    )
+  )
+
+(defn render-time-grid-line [g t time-bounds x-bounds min-y max-y]
+  (let [x (to-display-x x-bounds time-bounds t)]
+    (.drawLine g x min-y x max-y)
+    (.drawString g (str  t) (-  x 4) (- min-y 4))
+    )
+  )
 (defn render-timeline [g w h paths]
   
   (let [resources (find-distinct-resources paths)
-        time-bounds (find-time-bounds paths)]
+        time-bounds (find-time-bounds paths)
+        time-grid-vals (take-nth 10
+                                 (range (first time-bounds)
+                                        (second time-bounds)))]
 
      (doall
       (for [r resources]
@@ -120,6 +161,11 @@
      (.drawLine g 100 50 400 50)
      (.drawString g "time" 410 54)
 
+     (doall
+      (for [t time-grid-vals]
+        (render-time-grid-line g t time-bounds [100 400] 50 400)))
+     
+     
      )
  )
 
@@ -129,8 +175,9 @@
 
     (loop [paths paths]
       (if (> (count paths) 0)
-        (let [curr (:path (first paths))]
-          (render-path g w h curr resources time-bounds)
+        (let [curr (:path (first paths))
+              user (:user (first paths))]
+          (render-path g w h user curr resources time-bounds)
           (recur (drop 1 paths))))
       )
 
