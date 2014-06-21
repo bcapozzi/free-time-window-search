@@ -102,8 +102,22 @@
     )
   )
 
+(defn find-latest-time [user-path]
+  (let [path (:path user-path)
+        entries (map :entry path)]
+    (apply max entries)
+    )
+  )
 (defn find-time-bounds [paths]
-  [0 20]
+
+  (let [max-vals 
+        (for [path paths]
+          (find-latest-time path)
+          )]
+
+    [0  (apply max max-vals)]
+    )
+    
 )
 
 (defn compute-resource-label-y [id resources y-bounds]
@@ -188,7 +202,10 @@
 
   [{:user "F1" :path [{:resource "A" :entry 0}
                       {:resource "B" :entry 10}
-                      {:resource "C" :entry 20}]}]
+                      {:resource "C" :entry 20}]}
+   {:user "F2" :path [{:resource "A" :entry 10}
+                      {:resource "B" :entry 20}
+                      {:resource "C" :entry 30}]}]
 
   )
 
