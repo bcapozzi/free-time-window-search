@@ -61,9 +61,9 @@
   (/ (+ x1 x2) 2)
   )
 
-(defn render-resource-usage [g usage user]
+(defn render-resource-usage [g color usage user]
 
-  (.setColor g (new Color 0 255 0 128))
+  (.setColor g color)
   
   (.fillRect g
              (:x1 usage)
@@ -80,11 +80,10 @@
   )
 
 
-(defn render-path [g w h user path resources time-bounds]
+(defn render-path [g w h color user path resources time-bounds]
   (let [dresources (to-drawing-resources path resources time-bounds)]
-    (.setColor g (new Color 0 255 0 128))
     (doall (for [d dresources]
-             (render-resource-usage g d user)
+             (render-resource-usage g color d user)
              ))
     )
   )
@@ -183,6 +182,13 @@
      )
  )
 
+(defn get-color [user-id]
+  (cond
+   (= "F1" user-id) (new Color 0 0 255 128)
+   (= "F2" user-id) (new Color 0 255 0 128)
+   :else (new Color 255 0 0 128))
+  
+  )
 (defn render-paths [g w h paths]
   (let [resources (find-distinct-resources paths)
         time-bounds (find-time-bounds paths)]
@@ -191,7 +197,7 @@
       (if (> (count paths) 0)
         (let [curr (:path (first paths))
               user (:user (first paths))]
-          (render-path g w h user curr resources time-bounds)
+          (render-path g w h (get-color user) user curr resources time-bounds)
           (recur (drop 1 paths))))
       )
 
