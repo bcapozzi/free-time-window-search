@@ -4,7 +4,15 @@
 (import '(javax.swing JFrame JPanel )
         '(java.awt Color Graphics Graphics2D))
 
+(def grid-lines (ref [6 16 27]))
+
 (def grid-line-color (new Color 64 64 64 255))
+
+(defn update-grid-lines [vals]
+  (sync nil
+        (ref-set grid-lines vals))
+
+  )
 
 (defn compute-xvals [curr time-bounds x-bounds]
 
@@ -198,29 +206,34 @@
                                  (range (first time-bounds)
                                         (second time-bounds)))]
 
-     (doall
-      (for [r resources]
-        (render-resource-label g r resources 20 [100 400])))  
+    (doall
+     (for [r resources]
+       (render-resource-label g r resources 20 [100 400])))  
 
-     (.setColor g grid-line-color)
-     (.drawLine g 100 50 400 50)
-     (.drawString g "time" 410 54)
+    (.setColor g grid-line-color)
+    (.drawLine g 100 50 400 50)
+    (.drawString g "time" 410 54)
 
-     (doall
-      (for [t time-grid-vals]
-        (render-time-grid-line g t time-bounds [100 400] 50 400)))
-     
-     
-     )
- )
+    ;; (doall
+    ;;  (for [t time-grid-vals]
+    ;;    (render-time-grid-line g t time-bounds [100 400] 50 400)))
 
-(defn get-color [user-id]
-  (cond
-   (= "F1" user-id) (new Color 0 0 255 128)
-   (= "F2" user-id) (new Color 0 255 0 128)
-   :else (new Color 255 0 0 128))
-  
+    (doall
+     (for [t @grid-lines]
+       (render-time-grid-line g t time-bounds [100 400] 50 400)
+       )
+     ))
   )
+
+  (defn get-color [user-id]
+    (cond
+     (= "F1" user-id) (new Color 0 0 255 128)
+     (= "F2" user-id) (new Color 0 255 0 128)
+     :else (new Color 255 0 0 128)))
+       
+       
+
+  
 (defn render-paths [g w h paths]
   (let [resources (find-distinct-resources paths)
         time-bounds (find-time-bounds paths)]
@@ -278,9 +291,9 @@
       (.setSize 640 400)
       (.setVisible true))
 
-
     (doto panel
       (.repaint)))
   )
+
 
 
