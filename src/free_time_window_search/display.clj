@@ -4,21 +4,30 @@
 (import '(javax.swing JFrame JPanel )
         '(java.awt Color Graphics Graphics2D))
 
-(defn compute-xvals [curr next time-bounds x-bounds]
-  
-  (let [tmin (first time-bounds)
+(def grid-line-color (new Color 64 64 64 255))
+
+(defn compute-xvals [curr time-bounds x-bounds]
+
+  (cond
+   (nil? curr) []
+   :else
+   (let [tmin (first time-bounds)
         tmax (second time-bounds)
         xmin (first x-bounds)
         xmax (second x-bounds)
         trange (- tmax tmin)
         xrange (- xmax xmin)
         tstart (- (:entry curr) tmin)
-        tend (if (nil? next) tstart (- (:entry next) tmin))
+        tend (- (+ (:entry curr) (:duration curr)) tmin)
         xstart (+ xmin (* xrange (/ tstart trange)))
         xend (+ xmin (* xrange (/ tend trange)))
         ]
 
     [xstart xend])
+   )
+  
+  
+  
   )
 
 
@@ -39,22 +48,30 @@
 
   (loop [path path result []]
     (let [curr (first path)
-          next (second path)
-          xvals (compute-xvals curr next time-bounds [100 400])
+          xvals (compute-xvals curr time-bounds [100 400])
           yvals (compute-yvals curr resources [100 400])]
       (cond
-       (nil? next) result
-       :else (recur (drop 1 path) (conj result {:name (:resource curr)
-                                                :x1 (first xvals)
-                                                :y1 (first yvals)
-                                                :x2 (second xvals)
-                                                :y2 (second yvals)}))
-       )
+       (empty? path) result
+       :else
+       (recur (drop 1 path) (conj result {:name (:resource curr)
+                                          :x1 (first xvals)
+                                          :y1 (first yvals)
+                                          :x2 (second xvals)
+                                          :y2 (second yvals)})))
+      ;; (cond
+      ;;  (nil? next) (conj result {:name (:resource curr)
+      ;;                            :x1 (first xvals)
+      ;;                            :y1 (first yvals)
+      ;;                            :x2 (first xvals)
+      ;;                            :y2 (second yvals)})
+      ;;  :else (recur (drop 1 path) (conj result {:name (:resource curr)
+      ;;                                           :x1 (first xvals)
+      ;;                                           :y1 (first yvals)
+      ;;                                           :x2 (second xvals)
+      ;;                                           :y2 (second yvals)}))
+      ;;  )
       )
-    
     )
-  ;; [{:x1 100 :y1 100 :x2 200 :y2 100}
-  ;;  {:x1 200 :y1 200 :x2 300 :y2 200}]
   )
 
 (defn average [x1 x2]
@@ -62,21 +79,29 @@
   )
 
 (defn render-resource-usage [g color usage user]
+  (let [x1 (:x1 usage)
+        y1 (:y1 usage)
+        x2 (:x2 usage)
+        y2 (:y2 usage)
+        dx (- x2 x1)]
 
-  (.setColor g color)
-  
-  (.fillRect g
+    (.setColor g color)
+
+    (if (= 0 dx) (.fillArc g (- (int (average x1 x2)) 5) (- (int (average y1 y2)) 5) 10 10 0 360)
+        (.fillRect g
              (:x1 usage)
              (:y1 usage)
              (- (:x2 usage) (:x1 usage))
              (- (:y2 usage) (:y1 usage)))
+        )
 
-  (.setColor g (new Color 255 255 255 255))
-  (.drawString g
+    (.setColor g (new Color 255 255 255 255))
+    (.drawString g
                 user
                 (int  (average (:x1 usage) (:x2 usage)))
                 (int  (average (:y1 usage) (:y2 usage))))
 
+    )
   )
 
 
@@ -101,9 +126,13 @@
     )
   )
 
+(defn compute-exit-time [usage]
+  (+ (:entry usage) (:duration usage))
+  )
+
 (defn find-latest-time [user-path]
   (let [path (:path user-path)
-        entries (map :entry path)]
+        entries (map compute-exit-time path)]
     (apply max entries)
     )
   )
@@ -155,10 +184,12 @@
 
 (defn render-time-grid-line [g t time-bounds x-bounds min-y max-y]
   (let [x (to-display-x x-bounds time-bounds t)]
+    (.setColor g grid-line-color)
     (.drawLine g x min-y x max-y)
     (.drawString g (str  t) (-  x 4) (- min-y 4))
     )
   )
+
 (defn render-timeline [g w h paths]
   
   (let [resources (find-distinct-resources paths)
@@ -171,6 +202,7 @@
       (for [r resources]
         (render-resource-label g r resources 20 [100 400])))  
 
+     (.setColor g grid-line-color)
      (.drawLine g 100 50 400 50)
      (.drawString g "time" 410 54)
 
@@ -206,12 +238,12 @@
 
 (defn get-paths []
 
-  [{:user "F1" :path [{:resource "A" :entry 0}
-                      {:resource "B" :entry 10}
-                      {:resource "C" :entry 20}]}
-   {:user "F2" :path [{:resource "A" :entry 10}
-                      {:resource "B" :entry 20}
-                      {:resource "C" :entry 30}]}]
+  [{:user "F1" :path [{:resource "A" :entry 0 :duration 10}
+                      {:resource "B" :entry 10 :duration 10}
+                      {:resource "C" :entry 20 :duration 5}]}
+   {:user "F2" :path [{:resource "A" :entry 10 :duration 10}
+                      {:resource "B" :entry 20 :duration 10}
+                      {:resource "C" :entry 30 :duration 5}]}]
 
   )
 
@@ -220,7 +252,6 @@
     (.setColor (Color/BLACK))
     (.fillRect 0 0 w h)
     (.setColor (Color/GREEN))
-    ;; (.drawArc 200 200 20 20 0 360)
     )
 
 
