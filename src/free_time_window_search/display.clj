@@ -4,14 +4,28 @@
 (import '(javax.swing JFrame JPanel )
         '(java.awt Color Graphics Graphics2D))
 
-(def grid-lines (ref [6 16 27]))
+;; default grid-line setting
+;; is overwritten by data contents
+;; can be manually set as well
+(def grid-lines (ref [10 20 30]))
+
+(def drawing-panel-width 640)
+(def drawing-panel-height 480)
+(def drawing-x-bounds [40 540])
+(def drawing-y-bounds [40 440])
+(def drawing-min-timeline-y 20)
+(def drawing-max-timeline-y 460)
+(def drawing-resource-label-x 20)
 
 (def grid-line-color (new Color 64 64 64 255))
+(def resource-label-color (new Color 255 255 255 255))
 
-(defn update-grid-lines [vals]
+(defn update-grid-lines [vals panel]
   (sync nil
         (ref-set grid-lines vals))
 
+  (if (not (nil? panel))
+    (.repaint panel))
   )
 
 (defn compute-xvals [curr time-bounds x-bounds]
@@ -34,8 +48,6 @@
     [xstart xend])
    )
   
-  
-  
   )
 
 
@@ -53,11 +65,10 @@
   )
 
 (defn to-drawing-resources [path resources time-bounds]
-
   (loop [path path result []]
     (let [curr (first path)
-          xvals (compute-xvals curr time-bounds [100 400])
-          yvals (compute-yvals curr resources [100 400])]
+          xvals (compute-xvals curr time-bounds drawing-x-bounds)
+          yvals (compute-yvals curr resources drawing-y-bounds)]
       (cond
        (empty? path) result
        :else
@@ -66,18 +77,6 @@
                                           :y1 (first yvals)
                                           :x2 (second xvals)
                                           :y2 (second yvals)})))
-      ;; (cond
-      ;;  (nil? next) (conj result {:name (:resource curr)
-      ;;                            :x1 (first xvals)
-      ;;                            :y1 (first yvals)
-      ;;                            :x2 (first xvals)
-      ;;                            :y2 (second yvals)})
-      ;;  :else (recur (drop 1 path) (conj result {:name (:resource curr)
-      ;;                                           :x1 (first xvals)
-      ;;                                           :y1 (first yvals)
-      ;;                                           :x2 (second xvals)
-      ;;                                           :y2 (second yvals)}))
-      ;;  )
       )
     )
   )
@@ -103,7 +102,7 @@
              (- (:y2 usage) (:y1 usage)))
         )
 
-    (.setColor g (new Color 255 255 255 255))
+    (.setColor g resource-label-color)
     (.drawString g
                 user
                 (int  (average (:x1 usage) (:x2 usage)))
@@ -122,7 +121,6 @@
   )
 
 (defn find-distinct-resources [paths]
-
   (loop [paths paths uresources []]
     (let [path (:path  (first paths))
           ids (vec (map :resource path))]
@@ -170,9 +168,8 @@
     ))
   
 (defn render-resource-label [g id resources x-posn y-bounds]
-  ;; (.drawString g "R" 20 200)
    (let [label-y (compute-resource-label-y id resources y-bounds)]
-     (.setColor g (new Color 0 255 0 255))
+     (.setColor g resource-label-color)
      (.drawString g id x-posn label-y)
      )
   )
@@ -205,22 +202,30 @@
         time-grid-vals (take-nth 10
                                  (range (first time-bounds)
                                         (second time-bounds)))]
-
+    
     (doall
      (for [r resources]
-       (render-resource-label g r resources 20 [100 400])))  
+       (render-resource-label g r resources drawing-resource-label-x drawing-y-bounds)))  
 
     (.setColor g grid-line-color)
-    (.drawLine g 100 50 400 50)
-    (.drawString g "time" 410 54)
+    (.drawLine g
+               (first drawing-x-bounds)
+               drawing-min-timeline-y
+               (second drawing-x-bounds)
+               drawing-min-timeline-y)
+    
+    (.drawString g "time" (+ (second drawing-x-bounds) 10) (+ drawing-min-timeline-y 4))
 
-    ;; (doall
-    ;;  (for [t time-grid-vals]
-    ;;    (render-time-grid-line g t time-bounds [100 400] 50 400)))
-
+    ;; pass nil in for panel
+    (update-grid-lines time-grid-vals nil)
     (doall
      (for [t @grid-lines]
-       (render-time-grid-line g t time-bounds [100 400] 50 400)
+       (render-time-grid-line g
+                              t
+                              time-bounds
+                              drawing-x-bounds
+                              drawing-min-timeline-y
+                              drawing-max-timeline-y)
        )
      ))
   )
@@ -256,20 +261,24 @@
                       {:resource "C" :entry 20 :duration 5}]}
    {:user "F2" :path [{:resource "A" :entry 10 :duration 10}
                       {:resource "B" :entry 20 :duration 10}
-                      {:resource "C" :entry 30 :duration 5}]}]
+                      {:resource "C" :entry 30 :duration 5}]}
+   {:user "F3" :path [{:resource "C" :entry 35 :duration 7}
+                      {:resource "B" :entry 42 :duration 12}
+                      {:resource "A" :entry 54 :duration 9}]}]
 
   )
 
-(defn render [ #^Graphics g w h ]
-  (doto g
-    (.setColor (Color/BLACK))
-    (.fillRect 0 0 w h)
-    (.setColor (Color/GREEN))
-    )
+(defn render [ g w h ]
+  (let [user-paths (get-paths)]
 
+    (doto g
+      (.setColor (Color/BLACK))
+      (.fillRect 0 0 w h)
+      )
 
-  (render-paths g w h (get-paths))
-  (render-timeline g w h (get-paths))  
+    (render-timeline g w h user-paths)  
+    (render-paths g w h user-paths))
+
   )
 
 (defn create-panel []
@@ -288,11 +297,15 @@
 
     (doto frame
       (.add panel)
-      (.setSize 640 400)
+      (.setSize drawing-panel-width drawing-panel-height)
       (.setVisible true))
 
     (doto panel
-      (.repaint)))
+      (.repaint))
+
+    ;; return the panel so can manually invoke repaint via the repl
+    panel
+    )
   )
 
 
