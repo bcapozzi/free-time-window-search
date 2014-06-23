@@ -112,6 +112,18 @@
     )
   )
 
+;; leave x% of pixels on each side for labels
+(defn compute-drawing-x-bounds [w]
+  (let [margin (int (* 0.1 w))]
+    [margin (- w margin)]
+    ))
+
+;; leave x% of pixels on each side for labels
+(defn compute-drawing-y-bounds [h]
+    (let [margin (int (* 0.1 h))]
+    [margin (- h margin)]
+    ))
+
 (defn render-path
   "Render resource usage as a function of time, like a gantt chart"
   [g w h color user path resources time-bounds]
@@ -204,18 +216,6 @@
     (.drawString g (str  t) (-  x 4) (- min-y 4))
     )
   )
-
-;; leave x% of pixels on each side for labels
-(defn compute-drawing-x-bounds [w]
-  (let [margin (int (* 0.1 w))]
-    [margin (- w margin)]
-    ))
-
-;; leave x% of pixels on each side for labels
-(defn compute-drawing-y-bounds [h]
-    (let [margin (int (* 0.1 h))]
-    [margin (- h margin)]
-    ))
 
 (defn compute-min-timeline-y [y-bounds]
   (let [ymin (first y-bounds)
