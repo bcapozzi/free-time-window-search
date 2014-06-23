@@ -1,5 +1,4 @@
-(ns free-time-window-search.display
-)
+(ns free-time-window-search.display)
 
 (import '(javax.swing JFrame JPanel )
         '(java.awt Color Graphics Graphics2D))
@@ -15,6 +14,8 @@
 
 (def grid-line-color (new Color 64 64 64 255))
 (def resource-label-color (new Color 255 255 255 255))
+
+(def user-color-map (ref {}))
 
 (defn update-grid-lines [vals panel]
   (sync nil
@@ -219,13 +220,15 @@
     margin)
   )
 
+(defn compute-time-grid-values [time-bounds]
+  (take-nth 10 (range (first time-bounds)
+                      (second time-bounds))))
+
 (defn render-timeline [g w h paths]
   
   (let [resources (find-distinct-resources paths)
         time-bounds (find-time-bounds paths)
-        time-grid-vals (take-nth 10
-                                 (range (first time-bounds)
-                                        (second time-bounds)))
+        time-grid-vals (compute-time-grid-values time-bounds)
         x-bounds (compute-drawing-x-bounds w)
         y-bounds (compute-drawing-y-bounds h)
         min-timeline-y (compute-min-timeline-y y-bounds)
@@ -258,15 +261,29 @@
      ))
   )
 
-  (defn get-color [user-id]
-    (cond
-     (= "F1" user-id) (new Color 0 0 255 128)
-     (= "F2" user-id) (new Color 0 255 0 128)
-     :else (new Color 255 0 0 128)))
-       
-       
 
-  
+(defn assign-user-color [id]
+  (let [r (rand-int 255)
+        g (rand-int 255)
+        b (rand-int 255)
+        c (new Color r g b 128)]
+
+    (sync nil
+          (alter user-color-map assoc id c)
+          )
+    c
+    )
+  )
+
+(defn get-color [user-id]
+  "Assign a color for each user; for now a random point in (r,g,b)"
+  (let [c (get @user-color-map user-id)]
+    (cond
+     (nil? c) (assign-user-color user-id)
+     :else c)
+    )
+  )
+       
 (defn render-paths [g w h paths]
   (let [resources (find-distinct-resources paths)
         time-bounds (find-time-bounds paths)]
@@ -283,7 +300,7 @@
   )
 
 (defn get-paths []
-
+  "This is the test data that will be rendered, representative output of search"
   [{:user "F1" :path [{:resource "A" :entry 0 :duration 10}
                       {:resource "B" :entry 10 :duration 10}
                       {:resource "C" :entry 20 :duration 5}]}
@@ -331,7 +348,7 @@
     (doto panel
       (.repaint))
 
-    ;; return the panel so can manually invoke repaint via the repl
+    ;; return the panel so can manually tweak various aspects 
     panel
     )
   )
