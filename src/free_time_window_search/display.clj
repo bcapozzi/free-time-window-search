@@ -82,7 +82,10 @@
   (/ (+ x1 x2) 2)
   )
 
-(defn render-resource-usage [g color usage user]
+(defn render-resource-usage 
+  "Display time spent in resource as rectangle drawn in a given row of the chart.
+  Note that resources with zero time are drawn as circles"
+  [g color usage user]
   (let [x1 (:x1 usage)
         y1 (:y1 usage)
         x2 (:x2 usage)
@@ -91,13 +94,14 @@
 
     (.setColor g color)
 
-    (if (= 0 dx) (.fillArc g (- (int (average x1 x2)) 5) (- (int (average y1 y2)) 5) 10 10 0 360)
-        (.fillRect g
+    (if (= 0 dx)
+      (.fillArc g (- (int (average x1 x2)) 5) (- (int (average y1 y2)) 5) 10 10 0 360)
+      (.fillRect g
              (:x1 usage)
              (:y1 usage)
              (- (:x2 usage) (:x1 usage))
              (- (:y2 usage) (:y1 usage)))
-        )
+      )
 
     (.setColor g resource-label-color)
     (.drawString g
@@ -108,8 +112,9 @@
     )
   )
 
-
-(defn render-path [g w h color user path resources time-bounds]
+(defn render-path
+  "Render resource usage as a function of time, like a gantt chart"
+  [g w h color user path resources time-bounds]
   (let [x-bounds (compute-drawing-x-bounds w)
         y-bounds (compute-drawing-y-bounds h)
         dresources (to-drawing-resources path resources time-bounds x-bounds y-bounds)]
@@ -120,7 +125,9 @@
     )
   )
 
-(defn find-distinct-resources [paths]
+(defn find-distinct-resources
+  "Search over paths to find unique resources used"
+  [paths]
   (loop [paths paths uresources []]
     (let [path (:path  (first paths))
           ids (vec (map :resource path))]
@@ -136,22 +143,25 @@
   (+ (:entry usage) (:duration usage))
   )
 
+(defn find-earliest-time [user-path]
+  (let [path (:path user-path)
+        entries (map :entry path)]
+    (apply min entries)
+    )
+  )
+
 (defn find-latest-time [user-path]
   (let [path (:path user-path)
         entries (map compute-exit-time path)]
     (apply max entries)
     )
   )
+
 (defn find-time-bounds [paths]
-
-  (let [max-vals 
-        (for [path paths]
-          (find-latest-time path)
-          )]
-
-    [0  (apply max max-vals)]
+  (let [max-vals (for [path paths](find-latest-time path))
+        min-vals (for [path paths](find-earliest-time path))]
+    [(apply min min-vals)  (apply max max-vals)]
     )
-    
 )
 
 (defn compute-resource-label-y [id resources y-bounds]
@@ -201,6 +211,7 @@
     [margin (- w margin)]
     ))
 
+;; leave x% of pixels on each side for labels
 (defn compute-drawing-y-bounds [h]
     (let [margin (int (* 0.1 h))]
     [margin (- h margin)]
@@ -216,7 +227,7 @@
 (defn compute-max-timeline-y [y-bounds]
   (let [ymin (first y-bounds)
         ymax (second y-bounds)
-        margin (- ymax  (int (* 0.1 (- ymax ymin))))]
+        margin (- ymax  (int (* 0.02 (- ymax ymin))))]
     margin)
   )
 
@@ -262,7 +273,9 @@
   )
 
 
-(defn assign-user-color [id]
+(defn assign-user-color
+  "Assign a color for each user; for now a random point in (r,g,b)"
+  [id]
   (let [r (rand-int 255)
         g (rand-int 255)
         b (rand-int 255)
@@ -276,7 +289,6 @@
   )
 
 (defn get-color [user-id]
-  "Assign a color for each user; for now a random point in (r,g,b)"
   (let [c (get @user-color-map user-id)]
     (cond
      (nil? c) (assign-user-color user-id)
@@ -299,8 +311,10 @@
     )
   )
 
-(defn get-paths []
+(defn get-paths
   "This is the test data that will be rendered, representative output of search"
+  []
+
   [{:user "F1" :path [{:resource "A" :entry 0 :duration 10}
                       {:resource "B" :entry 10 :duration 10}
                       {:resource "C" :entry 20 :duration 5}]}
@@ -327,7 +341,6 @@
   )
 
 (defn create-panel []
-    "Create a panel with a customised render"
 
   (proxy [JPanel] []
     (paintComponent [g]
