@@ -25,7 +25,8 @@
     (.repaint panel))
   )
 
-(defn compute-xvals [curr time-bounds x-bounds]
+(defn compute-xvals
+                     [curr time-bounds x-bounds]
 
   (cond
    (nil? curr) []
@@ -42,8 +43,7 @@
         xend (+ xmin (* xrange (/ tend trange)))
         ]
 
-    [xstart xend])
-   )
+    [xstart xend]))
   
   )
 
@@ -327,31 +327,28 @@
 
   )
 
-(defn render [ g w h ]
-  (let [user-paths (get-paths)]
-
-    (doto g
+(defn render [ g w h user-paths]
+  (doto g
       (.setColor (Color/BLACK))
       (.fillRect 0 0 w h)
       )
 
     (render-timeline g w h user-paths)  
-    (render-paths g w h user-paths))
-
+    (render-paths g w h user-paths)
   )
 
-(defn create-panel []
+(defn create-panel [user-paths]
 
   (proxy [JPanel] []
     (paintComponent [g]
                     (proxy-super paintComponent g)
-                    (render g (. this getWidth) (. this getHeight)))))
+                    (render g (. this getWidth) (. this getHeight) user-paths))))
 
 
-(defn run []
+(defn run [user-paths]
 
   (let [frame (JFrame. "Free Time Window Search Visualization")
-        panel (create-panel)]
+        panel (create-panel user-paths)]
 
     (doto frame
       (.add panel)
