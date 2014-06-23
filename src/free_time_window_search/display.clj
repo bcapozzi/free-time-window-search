@@ -311,22 +311,6 @@
     )
   )
 
-(defn get-paths
-  "This is the test data that will be rendered, representative output of search"
-  []
-
-  [{:user "F1" :path [{:resource "A" :entry 0 :duration 10}
-                      {:resource "B" :entry 10 :duration 10}
-                      {:resource "C" :entry 20 :duration 5}]}
-   {:user "F2" :path [{:resource "A" :entry 10 :duration 10}
-                      {:resource "B" :entry 20 :duration 10}
-                      {:resource "C" :entry 30 :duration 5}]}
-   {:user "F3" :path [{:resource "C" :entry 35 :duration 7}
-                      {:resource "B" :entry 42 :duration 12}
-                      {:resource "A" :entry 54 :duration 9}]}]
-
-  )
-
 (defn render [ g w h user-paths]
   (doto g
       (.setColor (Color/BLACK))
@@ -363,5 +347,19 @@
     )
   )
 
+(defn get-paths
+  "This is the test data that will be rendered, representative output of search"
+  []
 
+  [{:user "F1" :path [{:resource "A" :entry 0 :duration 10}
+                      {:resource "B" :entry 10 :duration 10}
+                      {:resource "C" :entry 20 :duration 5}]}
+   {:user "F2" :path [{:resource "A" :entry 10 :duration 10}
+                      {:resource "B" :entry 20 :duration 10}
+                      {:resource "C" :entry 30 :duration 5}]}
+   {:user "F3" :path [{:resource "C" :entry 35 :duration 7}
+                      {:resource "B" :entry 42 :duration 12}
+                      {:resource "A" :entry 54 :duration 9}]}]
+
+  )
 
