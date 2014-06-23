@@ -11,10 +11,6 @@
 
 (def drawing-panel-width 640)
 (def drawing-panel-height 480)
-(def drawing-x-bounds [40 540])
-(def drawing-y-bounds [40 440])
-(def drawing-min-timeline-y 20)
-(def drawing-max-timeline-y 460)
 (def drawing-resource-label-x 20)
 
 (def grid-line-color (new Color 64 64 64 255))
@@ -64,11 +60,11 @@
     )
   )
 
-(defn to-drawing-resources [path resources time-bounds]
+(defn to-drawing-resources [path resources time-bounds x-bounds y-bounds]
   (loop [path path result []]
     (let [curr (first path)
-          xvals (compute-xvals curr time-bounds drawing-x-bounds)
-          yvals (compute-yvals curr resources drawing-y-bounds)]
+          xvals (compute-xvals curr time-bounds x-bounds)
+          yvals (compute-yvals curr resources y-bounds)]
       (cond
        (empty? path) result
        :else
@@ -113,7 +109,10 @@
 
 
 (defn render-path [g w h color user path resources time-bounds]
-  (let [dresources (to-drawing-resources path resources time-bounds)]
+  (let [x-bounds (compute-drawing-x-bounds w)
+        y-bounds (compute-drawing-y-bounds h)
+        dresources (to-drawing-resources path resources time-bounds x-bounds y-bounds)]
+    
     (doall (for [d dresources]
              (render-resource-usage g color d user)
              ))
@@ -195,26 +194,55 @@
     )
   )
 
+;; leave x% of pixels on each side for labels
+(defn compute-drawing-x-bounds [w]
+  (let [margin (int (* 0.1 w))]
+    [margin (- w margin)]
+    ))
+
+(defn compute-drawing-y-bounds [h]
+    (let [margin (int (* 0.1 h))]
+    [margin (- h margin)]
+    ))
+
+(defn compute-min-timeline-y [y-bounds]
+  (let [ymin (first y-bounds)
+        ymax (second y-bounds)
+        margin (int (* 0.1 (- ymax ymin)))]
+    margin)
+  )
+
+(defn compute-max-timeline-y [y-bounds]
+  (let [ymin (first y-bounds)
+        ymax (second y-bounds)
+        margin (- ymax  (int (* 0.1 (- ymax ymin))))]
+    margin)
+  )
+
 (defn render-timeline [g w h paths]
   
   (let [resources (find-distinct-resources paths)
         time-bounds (find-time-bounds paths)
         time-grid-vals (take-nth 10
                                  (range (first time-bounds)
-                                        (second time-bounds)))]
+                                        (second time-bounds)))
+        x-bounds (compute-drawing-x-bounds w)
+        y-bounds (compute-drawing-y-bounds h)
+        min-timeline-y (compute-min-timeline-y y-bounds)
+        max-timeline-y (compute-max-timeline-y y-bounds)]
     
     (doall
      (for [r resources]
-       (render-resource-label g r resources drawing-resource-label-x drawing-y-bounds)))  
+       (render-resource-label g r resources drawing-resource-label-x y-bounds)))  
 
     (.setColor g grid-line-color)
     (.drawLine g
-               (first drawing-x-bounds)
-               drawing-min-timeline-y
-               (second drawing-x-bounds)
-               drawing-min-timeline-y)
+               (first x-bounds)
+               min-timeline-y
+               (second x-bounds)
+               min-timeline-y)
     
-    (.drawString g "time" (+ (second drawing-x-bounds) 10) (+ drawing-min-timeline-y 4))
+    (.drawString g "time" (+ (second x-bounds) 10) (+ min-timeline-y 4))
 
     ;; pass nil in for panel
     (update-grid-lines time-grid-vals nil)
@@ -223,9 +251,9 @@
        (render-time-grid-line g
                               t
                               time-bounds
-                              drawing-x-bounds
-                              drawing-min-timeline-y
-                              drawing-max-timeline-y)
+                              x-bounds
+                              min-timeline-y
+                              max-timeline-y)
        )
      ))
   )
